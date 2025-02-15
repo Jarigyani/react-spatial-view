@@ -2,6 +2,8 @@
 
 A React component library that provides a powerful and flexible spatial view with smooth zooming and panning capabilities.
 
+[Demo(CodeSandbox)](https://codesandbox.io/p/devbox/jlr5gz)
+
 ## Features
 
 - 🖱️ Smooth zooming with mouse wheel and trackpad gestures
