@@ -89,8 +89,6 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
   const dragStart = useRef({ x: 0, y: 0 });
   const positionRef = useRef(position);
   const scaleRef = useRef(scale);
-  const rafRef = useRef<number | null>(null);
-  const deltaRef = useRef({ x: 0, y: 0 });
   const zoomTimeoutRef = useRef<number | null>(null);
   const dragTimeoutRef = useRef<number | null>(null);
   const adjustmentTimeoutRef = useRef<number | null>(null);
@@ -209,20 +207,6 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
     zoomDuration,
   ]);
 
-  const updatePanPosition = useCallback(() => {
-    const newPosition = {
-      x: position.x + deltaRef.current.x,
-      y: position.y + deltaRef.current.y,
-    };
-
-    const adjustedPosition = isZooming
-      ? newPosition
-      : constrainPosition(newPosition, scaleRef.current);
-    updatePosition(adjustedPosition);
-    deltaRef.current = { x: 0, y: 0 };
-    rafRef.current = null;
-  }, [position, isZooming, constrainPosition, updatePosition]);
-
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       e.preventDefault();
@@ -242,15 +226,15 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
           e.clientX,
           e.clientY,
           rect,
-          position,
-          scale
+          positionRef.current,
+          scaleRef.current
         );
 
         const sensitivity = isMouseWheel
           ? zoomSensitivity
           : trackpadZoomSensitivity;
         const newScale = calculateNewScale(
-          scale,
+          scaleRef.current,
           e.deltaY,
           sensitivity,
           minScale,
@@ -274,12 +258,16 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
         }, 100);
       } else {
         setIsMoving(true);
-        deltaRef.current.x -= e.deltaX;
-        deltaRef.current.y -= e.deltaY;
+        const newPosition = {
+          x: positionRef.current.x - e.deltaX,
+          y: positionRef.current.y - e.deltaY,
+        };
+        const adjustedPosition = constrainPosition(
+          newPosition,
+          scaleRef.current
+        );
+        updatePosition(adjustedPosition);
 
-        if (!rafRef.current) {
-          rafRef.current = requestAnimationFrame(updatePanPosition);
-        }
         if (dragTimeoutRef.current) {
           clearTimeout(dragTimeoutRef.current);
         }
@@ -289,11 +277,9 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
       }
     },
     [
-      scale,
-      position,
-      updatePanPosition,
       updatePosition,
       updateScale,
+      constrainPosition,
       zoomSensitivity,
       trackpadZoomSensitivity,
       minScale,
@@ -311,11 +297,11 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
 
       setIsDragging(true);
       dragStart.current = {
-        x: e.clientX - position.x,
-        y: e.clientY - position.y,
+        x: e.clientX - positionRef.current.x,
+        y: e.clientY - positionRef.current.y,
       };
     },
-    [position, excludePan]
+    [excludePan]
   );
 
   const handleMouseMove = useCallback(
@@ -349,9 +335,6 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => {
       container.removeEventListener("wheel", handleWheel);
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
     };
   }, [handleWheel]);
 
