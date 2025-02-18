@@ -7,6 +7,9 @@
 	"main": "dist/index.js",
 	"module": "dist/index.es.js",
 	"types": "dist/types/index.d.ts",
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"dev": "vite",
 		"build": "rollup -c",
