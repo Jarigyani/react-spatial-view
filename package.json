@@ -4,7 +4,7 @@
 	"description": "A React component for spatial view",
 	"author": "Jarigyani",
 	"license": "MIT",
-	"main": "dist/index.js",
+	"main": "dist/index.cjs.js",
 	"module": "dist/index.es.js",
 	"types": "dist/types/index.d.ts",
 	"files": [
@@ -12,7 +12,7 @@
 	],
 	"scripts": {
 		"dev": "vite",
-		"build": "rollup -c",
+		"build": "rm -rf dist && rollup -c",
 		"lint": "eslint .",
 		"preview": "vite preview"
 	},
