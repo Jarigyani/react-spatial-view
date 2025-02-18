@@ -36,9 +36,10 @@ const defaultContext: Omit<SpatialViewContextType, "setContext"> = {
   zoomDuration: 100,
 };
 
-export const SpatialViewContext = createContext<
-  SpatialViewContextType | undefined
->(undefined);
+export const SpatialViewContext = createContext<SpatialViewContextType>({
+  ...defaultContext,
+  setContext: () => {},
+});
 
 type SpatialViewProviderProps = {
   children: ReactNode;
@@ -50,9 +51,7 @@ const useSpatialViewContext = () => {
   return { ...context, setContext };
 };
 
-export const SpatialViewProvider: React.FC<SpatialViewProviderProps> = ({
-  children,
-}) => {
+export const SpatialViewProvider = ({ children }: SpatialViewProviderProps) => {
   const ctx = useSpatialViewContext();
   return (
     <SpatialViewContext.Provider value={ctx}>
