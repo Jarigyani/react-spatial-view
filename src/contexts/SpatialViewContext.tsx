@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useState } from "react";
+import React, { type ReactNode, createContext, useState } from "react";
 
 type Position = {
   x: number;
