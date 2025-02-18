@@ -211,8 +211,9 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
     (e: WheelEvent) => {
       e.preventDefault();
 
-      const isPanGesture = Math.abs(e.deltaX) > 0;
-      const isMouseWheel = e.deltaMode === 0 && Math.abs(e.deltaY) >= 100;
+      const isPanGesture =
+        Math.abs(e.deltaX) > 0 || (!e.ctrlKey && e.deltaMode === 0);
+      const isMouseWheel = e.deltaMode === 0 && Math.abs(e.deltaY) >= 25;
 
       if ((e.ctrlKey || isMouseWheel) && !isPanGesture) {
         e.stopPropagation();
