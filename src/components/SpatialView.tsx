@@ -210,8 +210,11 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       e.preventDefault();
+
+      const isPanGesture = Math.abs(e.deltaX) > 0;
       const isMouseWheel = e.deltaMode === 0 && Math.abs(e.deltaY) >= 100;
-      if (e.ctrlKey || isMouseWheel) {
+
+      if ((e.ctrlKey || isMouseWheel) && !isPanGesture) {
         e.stopPropagation();
         if (zoomTimeoutRef.current) {
           clearTimeout(zoomTimeoutRef.current);
