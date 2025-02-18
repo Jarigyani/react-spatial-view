@@ -1,7 +1,6 @@
 {
 	"name": "@jarigyani/react-spatial-view",
 	"version": "0.1.9",
-	"type": "module",
 	"description": "A React component for spatial view",
 	"author": "Jarigyani",
 	"license": "MIT",
