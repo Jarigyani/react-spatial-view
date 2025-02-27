@@ -98,6 +98,7 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
   const zoomTimeoutRef = useRef<number | null>(null);
   const dragTimeoutRef = useRef<number | null>(null);
   const adjustmentTimeoutRef = useRef<number | null>(null);
+  const lastTouchDistanceRef = useRef<number | null>(null);
 
   const contextValue = useMemo(
     () => ({
@@ -297,6 +298,132 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
     ]
   );
 
+  const handleTouchStart = useCallback(
+    (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      const isPanDisabled = excludePan.some(
+        (selector) => target.closest(selector) !== null
+      );
+      if (isPanDisabled) return;
+
+      if (e.touches.length === 1) {
+        setIsDragging(true);
+        dragStart.current = {
+          x: e.touches[0].clientX - positionRef.current.x,
+          y: e.touches[0].clientY - positionRef.current.y,
+        };
+      } else if (e.touches.length === 2) {
+        const distance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        lastTouchDistanceRef.current = distance;
+        setIsZooming(true);
+      }
+    },
+    [excludePan]
+  );
+
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      e.preventDefault();
+
+      if (e.touches.length === 1 && isDragging) {
+        const newPosition = {
+          x: e.touches[0].clientX - dragStart.current.x,
+          y: e.touches[0].clientY - dragStart.current.y,
+        };
+        const adjustedPosition = isZooming
+          ? newPosition
+          : constrainPosition(newPosition, scaleRef.current);
+        updatePosition(adjustedPosition);
+      } else if (
+        e.touches.length === 2 &&
+        lastTouchDistanceRef.current !== null
+      ) {
+        const newDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+
+        const container = containerRef.current;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+
+        const { currentMouseX, currentMouseY } = calculateMousePosition(
+          centerX,
+          centerY,
+          rect,
+          positionRef.current,
+          scaleRef.current
+        );
+
+        const scaleFactor = newDistance / lastTouchDistanceRef.current;
+        const newScale = Number(
+          Math.min(
+            maxScale,
+            Math.max(minScale, scaleRef.current * scaleFactor)
+          ).toFixed(3)
+        );
+
+        const mouseX = centerX - rect.left;
+        const mouseY = centerY - rect.top;
+        const newPosition = calculateZoomPosition(
+          mouseX,
+          mouseY,
+          currentMouseX,
+          currentMouseY,
+          newScale
+        );
+
+        updatePosition(newPosition);
+        updateScale(newScale);
+        lastTouchDistanceRef.current = newDistance;
+      }
+    },
+    [
+      isDragging,
+      isZooming,
+      constrainPosition,
+      updatePosition,
+      updateScale,
+      minScale,
+      maxScale,
+    ]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+    setIsZooming(false);
+    lastTouchDistanceRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: false,
+    });
+    container.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    });
+    container.addEventListener("touchend", handleTouchEnd);
+    container.addEventListener("touchcancel", handleTouchEnd);
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
+      container.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [handleWheel, handleTouchStart, handleTouchMove, handleTouchEnd]);
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -337,16 +464,6 @@ export const SpatialView: React.FC<SpatialViewProps> = ({
   const handleDragStart = useCallback((e: React.DragEvent) => {
     e.preventDefault();
   }, []);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      container.removeEventListener("wheel", handleWheel);
-    };
-  }, [handleWheel]);
 
   const contentStyle = useMemo(
     () => ({
